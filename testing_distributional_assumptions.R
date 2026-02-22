@@ -69,6 +69,9 @@ test1 <- sum((p2$counts-expected_numbers)**2 / expected_numbers)
 #but then if we look at the MLE for the sample data, we get back 4718/sum(interarrival_times) = 4.742254
 # Looking at the diff between counts and expected numbers, the real damage is being done in the first bin
 # so repeating the analysis removing the large, tail outliers would have no real impact on the test stat.
+# repeating the test to use Kolmogorov-Smirnov:
+test2 <- ks.test(interarrival_times, "pexp", rate=3, alternative = "two.sided")
+# again the p-value is massively significant!
 
 
 
@@ -94,6 +97,16 @@ d1 <- hist(driver_working_time, breaks = "FD")
 #RIDERS
 
 #1. The riders arrive at random times to demand a taxi ride with an inter-arrival time of exponential(30/hour)
+
+riders$previous_request_time <- c(0, riders$request_time[1:length(riders$request_time)-1])
+riders$interarrival_times <- riders$request_time - riders$previous_request_time
+# removing the first interarrival_times val as we don't really want to capture the initial 5 hour wait
+r_interarrival_times <- riders$interarrival_times[2:length(riders$interarrival_times)]
+# have a look
+test3 <- ks.test(r_interarrival_times, "pexp", rate=30, alternative = "two.sided")
+# again p value is massively significant,
+# looking at the MLE for the sample data gives 34420/(sum(r_interarrival_times)) = 34.59611
+
 
 #2. The origin (the point where the rider appears to demand the ride) and the destination of the trip are independent of
 # each other and is equally likely to be anywhere in Squareshire
