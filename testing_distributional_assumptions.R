@@ -129,6 +129,56 @@ test3 <- ks.test(r_interarrival_times, "pexp", rate=30, alternative = "two.sided
 
 #2. The origin (the point where the rider appears to demand the ride) and the destination of the trip are independent of
 # each other and is equally likely to be anywhere in Squareshire
+# Again, split rider pick_up location and dropoff location into 20x20 grids, and test if they're uniformly
+# distributed over Squareshite.
+#Additionally, test if they are independent
+riders_pickup_initial_coords <- stringr::str_split(riders$pickup_location, ",")
+riders_pickup_x_coords <- purrr::map_dbl(riders_pickup_initial_coords, ~as.double(stringr::str_replace(.[1], "\\(", "")))
+riders_pickup_y_coords <- purrr::map_dbl(riders_pickup_initial_coords, ~as.double(stringr::str_replace(.[2], "\\)", "")))
+#
+riders_dropoff_initial_coords <- stringr::str_split(riders$dropoff_location, ",")
+riders_dropoff_x_coords <- purrr::map_dbl(riders_dropoff_initial_coords, ~as.double(stringr::str_replace(.[1], "\\(", "")))
+riders_dropoff_y_coords <- purrr::map_dbl(riders_dropoff_initial_coords, ~as.double(stringr::str_replace(.[2], "\\)", "")))
+#
+rider_pickup_position <- table(purrr::map2_chr(riders_pickup_x_coords, riders_pickup_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y))))
+rider_dropoff_position <- table(purrr::map2_chr(riders_dropoff_x_coords, riders_dropoff_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y))))
+# need to test for the grids that have no vals and add a val of 0
+grid_side <- 20
+#enumerate a full list of gridnames
+full_grid <- unlist(purrr::map(0:(grid_side-1), function(x){
+  purrr::map(0:(grid_side-1), ~stringr::str_c(x, ":", .))}))
+
+rider_pickup_grid_observed <- ifelse(full_grid %in% names(rider_pickup_position),
+                             rider_pickup_position[full_grid],
+                             0)
+rider_dropoff_grid_observed <- ifelse(full_grid %in% names(rider_dropoff_position),
+                                     rider_dropoff_position[full_grid],
+                                     0)
+full_grid_expected <- rep(length(drivers$id) * 1/(grid_side)**2, grid_side**2)
+
+#test for rider pickup locations being uniformly distributed over Squareshire
+test5 <- sum(((rider_pickup_grid_observed - full_grid_expected)**2 / full_grid_expected))
+#test for rider dropoff locations being uniformly distributed over Squareshire
+test6 <- sum(((rider_dropoff_grid_observed - full_grid_expected)**2 / full_grid_expected))
+#Clearly it's nonsense that rider pickup and dropoff locations are uniformly distributed over Squareshire.
+
+# testing for independence
+rider_pickup_position2 <- purrr::map2_chr(riders_pickup_x_coords, riders_pickup_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y)))
+rider_dropoff_position2 <- purrr::map2_chr(riders_dropoff_x_coords, riders_dropoff_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y)))
+
+rider_pickup_dropoff_positions <- purrr::map2_chr(rider_pickup_position2, rider_dropoff_position2,
+                                                 ~stringr::str_c(.x, "-", .y))
+# enumerate a full list of possible pickup-dropoff location gridnames
+full_grid_both <- unlist(purrr::map(full_grid, function(x){
+  purrr::map(full_grid, ~stringr::str_c(x, "-", .))
+}))
+
+full_grid_both_observed <- ifelse(full_grid_both %in% names(rider_pickup_dropoff_positions),
+                                  rider_pickup_dropoff_positions[full_grid_both],
+                                  0)
+full_grid_both_expected <- map_dbl(full_grid_both, function(x){
+  
+})
 
 #3. Each arriving customer has an exponential(5/hour) patience times and if they are not matched with a driver within
 # this patience time, they cancel the request and leave the system.
