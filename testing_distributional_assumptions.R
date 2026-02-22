@@ -1,5 +1,7 @@
 library(tidyr)
 library(readxl)
+library(stringr)
+library(purrr)
 setwd("~/edinburgh_or/simulation/group_projects")
 
 drivers_filename <- "drivers.xlsx"
@@ -93,6 +95,23 @@ d1 <- hist(driver_working_time, breaks = "FD")
 # a uniform distribution. The driver stays at that location until being assigned a passenger. Similarly, when a driver
 # drops a rider after reaching the destination, s/he stays there (at the last destination) until being assigned
 # to another rider
+drivers_initial_coords <- stringr::str_split(drivers$initial_location, ",")
+drivers_x_coords <- purrr::map_dbl(drivers_initial_coords, ~as.double(stringr::str_replace(.[1], "\\(", "")))
+drivers_y_coords <- purrr::map_dbl(drivers_initial_coords, ~as.double(stringr::str_replace(.[2], "\\)", "")))
+#I think the way to test this, is it bin the initial coords of all drivers in a 20x20 grid, and test against that
+initial_grid_position <- table(purrr::map2_chr(drivers_x_coords, drivers_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y))))
+# need to test for the grids that have no vals and add a val of 0
+grid_side <- 20
+#enumerate a full list of gridnames
+full_grid <- unlist(purrr::map(0:(grid_side-1), function(x){
+  purrr::map(0:(grid_side-1), ~stringr::str_c(x, ":", .))}))
+
+full_grid_observed <- ifelse(full_grid %in% names(initial_grid_position),
+                             initial_grid_position[full_grid],
+                             0)
+full_grid_expected <- rep(length(drivers$id) * 1/(grid_side)**2, grid_side**2)
+test4 <- sum(((full_grid_observed - full_grid_expected)**2 / full_grid_expected))
+# Again, looks massively significant, so clearly initial position is not uniformly distributed over Squareshire
 
 #RIDERS
 
