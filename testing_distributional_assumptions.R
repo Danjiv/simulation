@@ -179,8 +179,13 @@ r_interarrival_times <- riders$interarrival_times[2:length(riders$interarrival_t
 test3 <- ks.test(r_interarrival_times, "pexp", rate=30, alternative = "two.sided")
 # again p value is massively significant,
 # looking at the MLE for the sample data gives 34420/(sum(r_interarrival_times)) = 34.59611
+#
+# will split the sample into train/test and check
 # 
-# testing that the data are exponential(34.59611)
+r_interarrival_times_test <- r_interarrival_times[1:17210]
+estimated_lambda <- 17210/(sum(r_interarrival_times_test))
+test_riders_exponential <- ks.test(r_interarrival_times[17211:34421], "pexp", rate=estimated_lambda, alternative = "two.sided")
+# p-val is massively non-significant - can go with this!
 
 
 #2. The origin (the point where the rider appears to demand the ride) and the destination of the trip are independent of
@@ -217,6 +222,34 @@ test5 <- sum(((rider_pickup_grid_observed - full_grid_expected)**2 / full_grid_e
 #test for rider dropoff locations being uniformly distributed over Squareshire
 test6 <- sum(((rider_dropoff_grid_observed - full_grid_expected)**2 / full_grid_expected))
 #Clearly it's nonsense that rider pickup and dropoff locations are uniformly distributed over Squareshire.
+#
+#
+# looking at rider pickup x and y coords
+# test covariance / correlation
+#
+rpxy_cov <- cov(riders_pickup_x_coords, riders_pickup_y_coords)
+# interesting
+rpxy_cor_test <- cor.test(riders_pickup_x_coords, riders_pickup_y_coords)
+# alright that's massively significant
+#
+
+#
+rpx <- hist(riders_pickup_x_coords, breaks = "FD") # has a fair skew, will try transforming
+rpx_sqrt <- sqrt(riders_pickup_x_coords)
+hist(rpx_sqrt, breaks = "FD")
+# testing that the distribution fits well to a normal
+rpx_test <- riders_pickup_x_coords[1:17210]
+rpx_test_mean <- mean(rpx_test)
+rpx_test_var <- var(rpx_test)
+# will test normal(8.4, 18)
+rpx_test_stat <- ks.test(riders_pickup_x_coords[17211:34421], "pchisq", df = rpx_test_mean, alternative = "two.sided")
+## test is massively significant - looks a bit like a chisq distribution
+#
+rpy <- hist(riders_pickup_y_coords, breaks = "FD") # looks pretty normally distributed - fair left skew
+#
+#looking at rider dropoff x and y coords
+rdx <- hist(riders_dropoff_x_coords, breaks = "FD") # looks fairly normal
+rdy <- hist(riders_dropoff_y_coords, breaks = "FD") # again, fair left skew
 
 # testing for independence
 rider_pickup_position2 <- purrr::map2_chr(riders_pickup_x_coords, riders_pickup_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y)))
