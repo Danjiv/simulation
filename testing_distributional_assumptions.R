@@ -243,31 +243,13 @@ rpx_test_mean <- mean(rpx_test)
 rpx_test_var <- var(rpx_test)
 # will test normal(8.4, 18)
 rpx_test_stat <- ks.test(riders_pickup_x_coords[17211:34421], "pchisq", df = rpx_test_mean, alternative = "two.sided")
-## test is massively significant - looks a bit like a chisq distribution
+## test is massively significant - would be better off fitting a bivariate normal
 #
 rpy <- hist(riders_pickup_y_coords, breaks = "FD") # looks pretty normally distributed - fair left skew
 #
 #looking at rider dropoff x and y coords
 rdx <- hist(riders_dropoff_x_coords, breaks = "FD") # looks fairly normal
 rdy <- hist(riders_dropoff_y_coords, breaks = "FD") # again, fair left skew
-
-# testing for independence
-rider_pickup_position2 <- purrr::map2_chr(riders_pickup_x_coords, riders_pickup_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y)))
-rider_dropoff_position2 <- purrr::map2_chr(riders_dropoff_x_coords, riders_dropoff_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y)))
-
-rider_pickup_dropoff_positions <- purrr::map2_chr(rider_pickup_position2, rider_dropoff_position2,
-                                                 ~stringr::str_c(.x, "-", .y))
-# enumerate a full list of possible pickup-dropoff location gridnames
-full_grid_both <- unlist(purrr::map(full_grid, function(x){
-  purrr::map(full_grid, ~stringr::str_c(x, "-", .))
-}))
-
-full_grid_both_observed <- ifelse(full_grid_both %in% names(rider_pickup_dropoff_positions),
-                                  rider_pickup_dropoff_positions[full_grid_both],
-                                  0)
-full_grid_both_expected <- map_dbl(full_grid_both, function(x){
-  
-})
 
 #3. Each arriving customer has an exponential(5/hour) patience times and if they are not matched with a driver within
 # this patience time, they cancel the request and leave the system.
