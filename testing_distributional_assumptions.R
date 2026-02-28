@@ -259,4 +259,29 @@ rdy <- hist(riders_dropoff_y_coords, breaks = "FD") # again, fair left skew
 
 #1. The length of each trip depends on the Euclidean distance between points. It is assumed that the average speed is approximately
 # 20mph and expected trip time is d/20 and the actual trip time is uniformly distributed between (0.8*d/20, 1.2*d/20)
+riders_pickup_initial_coords <- stringr::str_split(riders$pickup_location, ",")
+riders_pickup_x_coords <- purrr::map_dbl(riders_pickup_initial_coords, ~as.double(stringr::str_replace(.[1], "\\(", "")))
+riders_pickup_y_coords <- purrr::map_dbl(riders_pickup_initial_coords, ~as.double(stringr::str_replace(.[2], "\\)", "")))
+#
+riders_dropoff_initial_coords <- stringr::str_split(riders$dropoff_location, ",")
+riders_dropoff_x_coords <- purrr::map_dbl(riders_dropoff_initial_coords, ~as.double(stringr::str_replace(.[1], "\\(", "")))
+riders_dropoff_y_coords <- purrr::map_dbl(riders_dropoff_initial_coords, ~as.double(stringr::str_replace(.[2], "\\)", "")))
 
+distance <- sqrt((riders_pickup_x_coords - riders_dropoff_x_coords)**2 + (riders_pickup_y_coords - riders_dropoff_y_coords)**2)
+trip_time <- distance/20
+trip_time_lb <- trip_time*0.8
+trip_time_ub <- trip_time*1.2
+
+checking_distance_df <- data.frame(distance = distance,
+                                   trip_time = trip_time,
+                                   trip_time_lb = trip_time_lb,
+                                   trip_time_ub = trip_time_ub,
+                                   actual_trip_time = (as.numeric(riders$dropoff_datetime - riders$pickup_datetime)/3600)) %>% subset(!is.na(actual_trip_time)) %>%
+                                   dplyr::mutate(scalar = actual_trip_time / trip_time)
+
+checking_scalar <- hist(checking_distance_df$scalar, breaks = "FD")
+# looks like actual trip time is uniformly distributed between (0.7, 1.3)
+# Let's test!
+expected_vals <- (1/(length(checking_scalar$breaks)-1)) * length(checking_distance_df$distance)
+test20 <- sum(((checking_scalar$counts - expected_vals)**2)/expected_vals)
+# which is massively non significant, so we can go with uniform(0.7, 1.3)!!!
