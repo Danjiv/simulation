@@ -66,7 +66,7 @@ probs3 <- c(probs3, pexp(breakpoints[length(breakpoints)], rate=3, lower.tail = 
 # check number of expected values - remember we got rid of the first value
 expected_numbers <- (length(drivers$id)-1) * probs3
 # number of expected values in each bin doesn't look terrible
-#goodness of fit test should have 23 degrees of freedom, given there 24 values
+#goodness of fit test should have 24 degrees of freedom, given there 25 values
 # the test stat value looks ridiculous: T = 740.931, which is obviously massively significant
 # So obviously we would reject BoxCar's assumption that the interarrival time is 3/hour
 test1 <- sum((c(p2$counts, 0)-expected_numbers)**2 / expected_numbers) 
@@ -86,8 +86,8 @@ probs3_new <- probs1_new - probs2_new
 probs3_new <- c(probs3_new, pexp(breakpoints[length(breakpoints)], rate=4.742253, lower.tail = FALSE))
 expected_numbers_new <- (length(drivers$id)-1) * probs3_new
 test1_new <- sum((c(p2$counts, 0)-expected_numbers_new)**2 / expected_numbers_new)
-#test stat should follow a chi-squared distribution with 22 degrees of freedom
-pchisq(test1_new, 22, lower.tail=FALSE)
+#test stat should follow a chi-squared distribution with 23 degrees of freedom
+pchisq(test1_new, 23, lower.tail=FALSE)
 # test looks non significant - all good!
 
 
@@ -99,7 +99,13 @@ driver_working_time <- drivers$offline_time - drivers$arrival_time
 #sanity checks
 min(driver_working_time)
 max(driver_working_time)
-# min here is 6 hours - clearly the availability time can't be uniformly distributed between 5 and 8 hours
+# min here is 6 hours - clearly the availability time won't be uniformly distributed between 5 and 8 hours
+#performing the test anyway:
+dwt <- hist(driver_working_time, breaks = c(seq(5, 8, 0.1)))
+dwt_expected <- length(drivers$id) * (1/(length(dwt$breaks)-1))
+test_dwt <- sum((dwt$counts-dwt_expected)**2 / dwt_expected)
+pchisq(test_dwt, 29, lower.tail=FALSE) # massively significant, probably won't report this!
+
 # have a look
 d1 <- hist(driver_working_time, breaks = "FD")
 # that looks pretty solidly uniformly distributed between 6 and 8 hours
