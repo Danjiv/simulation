@@ -284,6 +284,15 @@ rpdx_cor_test <- cor.test(riders_pickup_x_coords, riders_dropoff_x_coords)
 rpdy_cor_test <- cor.test(riders_pickup_y_coords, riders_dropoff_y_coords)
 # again uncorrelated - all good!
 #
+# now looking at pickup x and dropoff y
+#
+rpdxy_cor_test <- cor.test(riders_pickup_x_coords, riders_dropoff_y_coords)
+# again non-significant - all good!
+
+# now looking at pickup y and dropoff x
+#
+rpdyx_cor_test <- cor.test(riders_pickup_y_coords, riders_dropoff_y_coords)
+# again nonsignificant - all good!
 #
 
 #3. Each arriving customer has an exponential(5/hour) patience times and if they are not matched with a driver within
