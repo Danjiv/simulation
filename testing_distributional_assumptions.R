@@ -291,7 +291,7 @@ rpdxy_cor_test <- cor.test(riders_pickup_x_coords, riders_dropoff_y_coords)
 
 # now looking at pickup y and dropoff x
 #
-rpdyx_cor_test <- cor.test(riders_pickup_y_coords, riders_dropoff_y_coords)
+rpdyx_cor_test <- cor.test(riders_pickup_y_coords, riders_dropoff_x_coords)
 # again nonsignificant - all good!
 #
 
