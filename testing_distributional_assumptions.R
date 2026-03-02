@@ -2,6 +2,7 @@ library(tidyr)
 library(readxl)
 library(stringr)
 library(purrr)
+#library(truncdist)
 setwd("~/edinburgh_or/simulation/group_projects")
 
 drivers_filename <- "drivers.xlsx"
@@ -159,17 +160,20 @@ dxy_cov <- cov(drivers_x_coords, drivers_y_coords)
 dxy_cor <- cor.test(drivers_x_coords, drivers_y_coords,  method = "pearson")
 # don't look at all correlated, can then assume the x-coords and y-coords are sampled from their own
 # normal distributions - will test parameters below.
-xcord_test <- drivers_x_coords[1:2359]
-ycord_test <- drivers_y_coords[1:2359]
+
+# Think the problem with trying to use a ks test here 
+# is that the data is obviously truncated!
+xcord_test <- drivers_x_coords
+ycord_test <- drivers_y_coords
 xcord_test_mean <- mean(xcord_test)
 xcord_test_var <- var(xcord_test)
 ycord_test_mean <- mean(ycord_test)
 ycord_test_var <- var(ycord_test)
-# assuming the xcords are normal(10, 19)
-# assuming the ycords are normal(11.5, 19)
-test_drivers_x_pos <- ks.test(drivers_x_coords[2360:4719], "pnorm", mean = 10, sd = sqrt(19), alternative = "two.sided")
-test_drivers_y_pos <- ks.test(drivers_y_coords[2360:4719], "pnorm", mean = 11.5, sd = sqrt(19), alternative = "two.sided")
-# Both non-significant - can go with those distributions
+xpos_ypos_n <- length(drivers$id)
+test_drivers_x_pos <- ks.test(drivers_x_coords, "pnorm", mean = xcord_test_mean, sd = sqrt(xcord_test_var), alternative = "two.sided")
+test_drivers_x_pos_stat <- (sqrt(xpos_ypos_n) - 0.01 + (0.85/(sqrt(xpos_ypos_n))))*test_drivers_x_pos$statistic
+test_drivers_y_pos <- ks.test(drivers_y_coords, "pnorm", mean = 11.5, sd = sqrt(18.8), alternative = "two.sided")
+
 
 
 
@@ -201,39 +205,68 @@ test_riders_exponential_stat <- (test_riders_exponential$statistic - (0.2/test3_
 
 #2. The origin (the point where the rider appears to demand the ride) and the destination of the trip are independent of
 # each other and is equally likely to be anywhere in Squareshire
-# Again, split rider pick_up location and dropoff location into 20x20 grids, and test if they're uniformly
-# distributed over Squareshite.
-#Additionally, test if they are independent
+# Again, split rider pick_up location and dropoff location into 20x20 grids, and perform a serial test to check if they're uniformly
+# distributed over Squareshire.
 riders_pickup_initial_coords <- stringr::str_split(riders$pickup_location, ",")
 riders_pickup_x_coords <- purrr::map_dbl(riders_pickup_initial_coords, ~as.double(stringr::str_replace(.[1], "\\(", "")))
 riders_pickup_y_coords <- purrr::map_dbl(riders_pickup_initial_coords, ~as.double(stringr::str_replace(.[2], "\\)", "")))
+#
+#want to bin the coordinates into 5 grids for the serial test
+riders_pickup_x_coords2 <- ifelse(riders_pickup_x_coords < 4, 1,
+                                  ifelse(riders_pickup_x_coords < 8, 2,
+                                         ifelse(riders_pickup_x_coords < 12, 3,
+                                                ifelse(riders_pickup_x_coords < 16, 4,
+                                                       5))))
+
+riders_pickup_y_coords2 <- ifelse(riders_pickup_y_coords < 4, 1,
+                                  ifelse(riders_pickup_y_coords < 8, 2,
+                                         ifelse(riders_pickup_y_coords < 12, 3,
+                                                ifelse(riders_pickup_y_coords < 16, 4,
+                                                       5))))
+#
 #
 riders_dropoff_initial_coords <- stringr::str_split(riders$dropoff_location, ",")
 riders_dropoff_x_coords <- purrr::map_dbl(riders_dropoff_initial_coords, ~as.double(stringr::str_replace(.[1], "\\(", "")))
 riders_dropoff_y_coords <- purrr::map_dbl(riders_dropoff_initial_coords, ~as.double(stringr::str_replace(.[2], "\\)", "")))
 #
-rider_pickup_position <- table(purrr::map2_chr(riders_pickup_x_coords, riders_pickup_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y))))
-rider_dropoff_position <- table(purrr::map2_chr(riders_dropoff_x_coords, riders_dropoff_y_coords, ~stringr::str_c(floor(.x), ":", floor(.y))))
-# need to test for the grids that have no vals and add a val of 0
-grid_side <- 20
-#enumerate a full list of gridnames
-full_grid <- unlist(purrr::map(0:(grid_side-1), function(x){
-  purrr::map(0:(grid_side-1), ~stringr::str_c(x, ":", .))}))
-
-rider_pickup_grid_observed <- ifelse(full_grid %in% names(rider_pickup_position),
-                             rider_pickup_position[full_grid],
-                             0)
-rider_dropoff_grid_observed <- ifelse(full_grid %in% names(rider_dropoff_position),
-                                     rider_dropoff_position[full_grid],
-                                     0)
-full_grid_expected <- rep(length(drivers$id) * 1/(grid_side)**2, grid_side**2)
-
-#test for rider pickup locations being uniformly distributed over Squareshire
-test5 <- sum(((rider_pickup_grid_observed - full_grid_expected)**2 / full_grid_expected))
-#test for rider dropoff locations being uniformly distributed over Squareshire
-test6 <- sum(((rider_dropoff_grid_observed - full_grid_expected)**2 / full_grid_expected))
-#Clearly it's nonsense that rider pickup and dropoff locations are uniformly distributed over Squareshire.
+#want to bin the coordinates into 5 grids for the serial test
+riders_dropoff_x_coords2 <- ifelse(riders_dropoff_x_coords < 4, 1,
+                                  ifelse(riders_dropoff_x_coords < 8, 2,
+                                         ifelse(riders_dropoff_x_coords < 12, 3,
+                                                ifelse(riders_dropoff_x_coords < 16, 4,
+                                                       5))))
+riders_dropoff_y_coords2 <- ifelse(riders_dropoff_y_coords < 4, 1,
+                                   ifelse(riders_dropoff_y_coords < 8, 2,
+                                          ifelse(riders_dropoff_y_coords < 12, 3,
+                                                 ifelse(riders_dropoff_y_coords < 16, 4,
+                                                        5))))
 #
+rider_pickup_position <- purrr::map2_chr(riders_pickup_x_coords2, riders_pickup_y_coords2, ~stringr::str_c(.x, ":", .y))
+rider_dropoff_position <- purrr::map2_chr(riders_dropoff_x_coords2, riders_dropoff_y_coords2, ~stringr::str_c(.x, ":", .y))
+rider_journey_position <- table(purrr::map2_chr(rider_pickup_position, rider_dropoff_position, ~stringr::str_c(.x, "-", .y)))
+# need to test for the grids that have no vals and add a val of 0
+grid_side <- 5
+#enumerate a full list of gridnames
+half_grid <- unlist(purrr::map(1:grid_side, function(x){
+  purrr::map(1:grid_side, ~stringr::str_c(x, ":", .))}))
+
+full_grid <- unlist(purrr::map(half_grid, function(x){
+  purrr::map(half_grid, ~stringr::str_c(x, "-", .))
+}))
+
+
+rider_journey_observed <- ifelse(full_grid %in% names(rider_journey_position),
+                             rider_journey_position[full_grid],
+                             0)
+                                     
+full_grid_expected <- length(riders$id) * (1/625)
+
+test_riders_location <- sum((rider_journey_observed - full_grid_expected)**2 / full_grid_expected)
+# test will follow a chi-squared distribution with 5^4 - 1 = 624 degrees of freedom
+pchisq(test_riders_location, 624, lower.tail=FALSE)
+# clearly massively significant, so we can reject the null hypothesis that riders'
+# pick-up and drop-off locations are uniformly distributed over Squareshire and independent.
+
 #
 # looking at rider pickup x and y coords
 # test covariance / correlation
@@ -243,24 +276,15 @@ rpxy_cov <- cov(riders_pickup_x_coords, riders_pickup_y_coords)
 rpxy_cor_test <- cor.test(riders_pickup_x_coords, riders_pickup_y_coords)
 # alright that's massively significant
 #
+# now looking to see if pickup x coords and dropoff x coords are correlated
+rpdx_cor_test <- cor.test(riders_pickup_x_coords, riders_dropoff_x_coords)
+# not correlated, all good!
 
+# now looking at riders pickup y coords and riders dropoff y coords
+rpdy_cor_test <- cor.test(riders_pickup_y_coords, riders_dropoff_y_coords)
+# again uncorrelated - all good!
 #
-rpx <- hist(riders_pickup_x_coords, breaks = "FD") # has a fair skew, will try transforming
-rpx_sqrt <- sqrt(riders_pickup_x_coords)
-hist(rpx_sqrt, breaks = "FD")
-# testing that the distribution fits well to a normal
-rpx_test <- riders_pickup_x_coords[1:17210]
-rpx_test_mean <- mean(rpx_test)
-rpx_test_var <- var(rpx_test)
-# will test normal(8.4, 18)
-rpx_test_stat <- ks.test(riders_pickup_x_coords[17211:34421], "pchisq", df = rpx_test_mean, alternative = "two.sided")
-## test is massively significant - would be better off fitting a bivariate normal
 #
-rpy <- hist(riders_pickup_y_coords, breaks = "FD") # looks pretty normally distributed - fair left skew
-#
-#looking at rider dropoff x and y coords
-rdx <- hist(riders_dropoff_x_coords, breaks = "FD") # looks fairly normal
-rdy <- hist(riders_dropoff_y_coords, breaks = "FD") # again, fair left skew
 
 #3. Each arriving customer has an exponential(5/hour) patience times and if they are not matched with a driver within
 # this patience time, they cancel the request and leave the system.
