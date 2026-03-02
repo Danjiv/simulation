@@ -183,15 +183,20 @@ riders$interarrival_times <- riders$request_time - riders$previous_request_time
 r_interarrival_times <- riders$interarrival_times[2:length(riders$interarrival_times)]
 # have a look
 test3 <- ks.test(r_interarrival_times, "pexp", rate=30, alternative = "two.sided")
+test3_n <- length(r_interarrival_times)
+test3_stat <- (sqrt(test3_n) + 0.12 + (0.11/sqrt(test3_n)))*test3$statistic
+# our critical value for a two-tailed test at the 95% significant level here is
+# 1.480, so clearly we would reject the null hypothesis!
 # again p value is massively significant,
 # looking at the MLE for the sample data gives 34420/(sum(r_interarrival_times)) = 34.59611
 #
-# will split the sample into train/test and check
+# will test using the sample MLE
 # 
-r_interarrival_times_test <- r_interarrival_times[1:17210]
-estimated_lambda <- 17210/(sum(r_interarrival_times_test))
-test_riders_exponential <- ks.test(r_interarrival_times[17211:34421], "pexp", rate=estimated_lambda, alternative = "two.sided")
-# p-val is massively non-significant - can go with this!
+estimated_lambda <- 34420/(sum(r_interarrival_times))
+test_riders_exponential <- ks.test(r_interarrival_times, "pexp", rate=estimated_lambda, alternative = "two.sided")
+# calculate the adjusted test stat
+# here the critical value is 1.190
+test_riders_exponential_stat <- (test_riders_exponential$statistic - (0.2/test3_n))*(sqrt(test3_n) + 0.26 + (0.5/sqrt(test3_n)))
 
 
 #2. The origin (the point where the rider appears to demand the ride) and the destination of the trip are independent of
